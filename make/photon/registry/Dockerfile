@@ -3,7 +3,7 @@ FROM photon:1.0
 MAINTAINER wangyan@vmware.com
 
 # The original script in the docker offical registry image.
-RUN tdnf distro-sync -y \
+RUN export https_proxy=http://192.168.65.2:8118 && tdnf distro-sync -y \
     && tdnf erase vim -y \
     && tdnf install sudo -y >> /dev/null\
     && tdnf clean all \

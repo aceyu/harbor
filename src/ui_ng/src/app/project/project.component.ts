@@ -35,6 +35,8 @@ export class ProjectComponent implements OnInit {
 
   loading: boolean = true;
 
+  isRemote: boolean = false;
+
   get selecteType(): number {
     return this.currentFilteredType;
   }
@@ -52,6 +54,11 @@ export class ProjectComponent implements OnInit {
     if (window.sessionStorage && window.sessionStorage['projectTypeValue'] && window.sessionStorage['fromDetails']) {
       this.currentFilteredType = +window.sessionStorage['projectTypeValue'];
       window.sessionStorage.removeItem('fromDetails');
+    }
+    if (window.location.pathname === "/harbor/remote/projects") {
+      this.isRemote = true;
+    } else {
+      this.isRemote = false;
     }
   }
 

@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Injectable } from '@angular/core';
-import { Http } from '@angular/http';
+import {Http, URLSearchParams} from '@angular/http';
 import 'rxjs/add/operator/toPromise';
 
 import { Statistics } from './statistics';
 import { Volumes } from './volumes';
-import {HTTP_GET_OPTIONS} from "../shared.utils";
+import {buildHttpRequestOptions, HTTP_GET_OPTIONS} from "../shared.utils";
 
 const statisticsEndpoint = "/api/statistics";
 const volumesEndpoint = "/api/systeminfo/volumes";
@@ -33,7 +33,16 @@ export class StatisticsService {
 
     constructor(private http: Http) { }
 
-    getStatistics(): Promise<Statistics> {
+    getStatistics(isRemote?: boolean): Promise<Statistics> {
+        if (isRemote) {
+            let params = new URLSearchParams();
+            params.set('isRemote', 'true');
+            let option = buildHttpRequestOptions(params)
+            option.search = params
+            return this.http.get(statisticsEndpoint, option).toPromise()
+                .then(response => response.json() as Statistics)
+                .catch(error => Promise.reject(error));
+        }
         return this.http.get(statisticsEndpoint, HTTP_GET_OPTIONS).toPromise()
         .then(response => response.json() as Statistics)
         .catch(error => Promise.reject(error));

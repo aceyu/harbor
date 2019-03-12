@@ -70,6 +70,10 @@ const harborRoutes: Routes = [
         component: ProjectComponent
       },
       {
+        path: 'remote/projects',
+        component: ProjectComponent
+      },
+      {
         path: 'logs',
         component: LogPageComponent
       },
@@ -104,6 +108,15 @@ const harborRoutes: Routes = [
       },
       {
         path: 'projects/:id/repositories/:repo',
+        component: TagRepositoryComponent,
+        canActivate: [MemberGuard],
+        canDeactivate: [LeavingRepositoryRouteDeactivate],
+        resolve: {
+          projectResolver: ProjectRoutingResolver
+        }
+      },
+      {
+        path: 'remote/projects/:id/repositories/:repo',
         component: TagRepositoryComponent,
         canActivate: [MemberGuard],
         canDeactivate: [LeavingRepositoryRouteDeactivate],
@@ -175,6 +188,18 @@ const harborRoutes: Routes = [
             path: 'configs',
             component: ProjectConfigComponent
           }
+        ]
+      },
+      {
+        path: 'remote/projects/:id',
+        resolve: {
+          projectResolver: ProjectRoutingResolver
+        },
+        children: [
+          {
+            path: 'repositories',
+            component: RepositoryPageComponent
+          },
         ]
       },
       {

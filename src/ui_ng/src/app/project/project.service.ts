@@ -20,20 +20,31 @@ import 'rxjs/add/operator/catch';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/observable/throw';
 import {HTTP_JSON_OPTIONS, buildHttpRequestOptions, HTTP_GET_OPTIONS} from "../shared/shared.utils";
+import {Statistics} from "../shared/statictics/statistics";
 
 @Injectable()
 export class ProjectService {
 
   constructor(private http: Http) {}
 
-  getProject(projectId: number): Observable<any> {
+  getProject(projectId: number, isRemote?: boolean): Observable<any> {
+    if (isRemote) {
+      let params = new URLSearchParams();
+      params.set('isRemote', 'true');
+      let option = buildHttpRequestOptions(params)
+      option.search = params
+      return this.http
+          .get(`/api/projects/${projectId}`, option)
+          .map(response => response.json())
+          .catch(error => Observable.throw(error));
+    }
     return this.http
                .get(`/api/projects/${projectId}`, HTTP_GET_OPTIONS)
                .map(response => response.json())
                .catch(error => Observable.throw(error));
   }
 
-  listProjects(name: string, isPublic: number, page?: number, pageSize?: number): Observable<any> {
+  listProjects(name: string, isPublic: number, page?: number, pageSize?: number, isRemote?: boolean): Observable<any> {
     let params = new URLSearchParams();
     if (page && pageSize) {
       params.set('page', page + '');
@@ -44,6 +55,9 @@ export class ProjectService {
     }
     if (isPublic !== undefined) {
       params.set('public', '' + isPublic);
+    }
+    if (isRemote) {
+      params.set('isRemote', 'true');
     }
 
     return this.http

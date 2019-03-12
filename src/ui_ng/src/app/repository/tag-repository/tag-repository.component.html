@@ -3,6 +3,6 @@
         <a (click)="goProBack()">{{'SIDE_NAV.PROJECTS'| translate}}</a>
         <a (click)="watchGoBackEvt(projectId)">&lt; {{'REPOSITORY.REPOSITORIES'| translate}}</a>
     </div>
-    <hbr-repository [repoName]="repoName" [hasSignedIn]="hasSignedIn" [hasProjectAdminRole]="hasProjectAdminRole" [projectId]="projectId" [isGuest]="isGuest"
+    <hbr-repository [isRemote]="isRemote" [repoName]="repoName" [hasSignedIn]="hasSignedIn" [hasProjectAdminRole]="hasProjectAdminRole" [projectId]="projectId" [isGuest]="isGuest"
                     (tagClickEvent)="watchTagClickEvt($event)" (backEvt)="watchGoBackEvt($event)"></hbr-repository>
 </div>

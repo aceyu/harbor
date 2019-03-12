@@ -90,6 +90,10 @@ type manifestResp struct {
 
 // Get ...
 func (ra *RepositoryAPI) Get() {
+	if ra.GetString("isRemote") == "true" && ra.Ctx.Request.Header.Get("IS-REMOTE-PULL") == "" {
+		RemotePullProxy(ra.Ctx)
+		return
+	}
 	projectID, err := ra.GetInt64("project_id")
 	if err != nil || projectID <= 0 {
 		ra.HandleBadRequest(fmt.Sprintf("invalid project_id %s", ra.GetString("project_id")))
@@ -406,6 +410,10 @@ func (ra *RepositoryAPI) GetTag() {
 
 // GetTags returns tags of a repository
 func (ra *RepositoryAPI) GetTags() {
+	if ra.GetString("isRemote") == "true" && ra.Ctx.Request.Header.Get("IS-REMOTE-PULL") == "" {
+		RemotePullProxy(ra.Ctx)
+		return
+	}
 	repoName := ra.GetString(":splat")
 	labelID, err := ra.GetInt64("label_id", 0)
 	if err != nil {

@@ -32,6 +32,9 @@ export class TagRepositoryComponent implements OnInit {
   hasProjectAdminRole: boolean = false;
   isGuest: boolean;
   registryUrl: string;
+  isRemote: boolean = false;
+
+  pattern = /^\/harbor\/remote\/projects\/\d+\/repositories\/[\w\?%&=\-_]+$/;
 
   @ViewChild(RepositoryComponent)
   repositoryComponent: RepositoryComponent;
@@ -58,6 +61,11 @@ export class TagRepositoryComponent implements OnInit {
     this.repoName = this.route.snapshot.params['repo'];
 
     this.registryUrl = this.appConfigService.getConfig().registry_url;
+    if (this.pattern.test(window.location.pathname)) {
+      this.isRemote = true;
+    } else {
+      this.isRemote = false;
+    }
   }
 
   get withNotary(): boolean {
@@ -86,9 +94,17 @@ export class TagRepositoryComponent implements OnInit {
   }
 
   watchGoBackEvt(projectId: string| number): void {
+    if (this.isRemote) {
+      this.router.navigate(["harbor", "remote", "projects", projectId, "repositories"]);
+      return;
+    }
     this.router.navigate(["harbor", "projects", projectId, "repositories"]);
   }
   goProBack(): void {
+    if (this.isRemote) {
+      this.router.navigate(["harbor", "remote" , "projects"]);
+      return;
+    }
     this.router.navigate(["harbor", "projects"]);
   }
 }

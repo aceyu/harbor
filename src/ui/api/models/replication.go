@@ -29,3 +29,7 @@ func (r *Replication) Valid(v *validation.Validation) {
 		v.SetError("policy_id", "invalid value")
 	}
 }
+
+type PullSingleReplication struct {
+	Repository string `json:"repository"`
+}

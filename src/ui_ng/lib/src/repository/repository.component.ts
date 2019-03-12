@@ -13,19 +13,33 @@
 // limitations under the License.
 import { Component, OnInit, ViewChild, Input, Output, EventEmitter } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { State } from 'clarity-angular';
+import { State} from 'clarity-angular';
 
 import { RepositoryService } from '../service/repository.service';
-import { Repository, RepositoryItem, Tag, TagClickEvent,
-  SystemInfo, SystemInfoService, TagService } from '../service/index';
+import {
+    Repository,
+    RepositoryItem,
+    Tag,
+    TagClickEvent,
+    SystemInfo,
+    SystemInfoService,
+    TagService,
+    RequestQueryParams,
+    ReplicationJobItem,
+    ReplicationJob,
+    ReplicationService
+} from '../service/index';
 import { ErrorHandler } from '../error-handler/index';
 import { ConfirmationState, ConfirmationTargets } from '../shared/shared.const';
 import { ConfirmationDialogComponent, ConfirmationMessage, ConfirmationAcknowledgement } from '../confirmation-dialog/index';
-import { toPromise } from '../utils';
+import {calculatePage, DEFAULT_PAGE_SIZE, toPromise} from '../utils';
+import {JobLogViewerComponent} from "../job-log-viewer";
+import {Observable, Subscription} from "rxjs";
 
 const TabLinkContentMap: {[index: string]: string} = {
   'repo-info': 'info',
-  'repo-image': 'image'
+  'repo-image': 'image',
+    'repo-jobLog': 'jobLog'
 };
 
 @Component({
@@ -43,6 +57,8 @@ export class RepositoryComponent implements OnInit {
   @Output() tagClickEvent = new EventEmitter<TagClickEvent>();
   @Output() backEvt: EventEmitter<any> = new EventEmitter<any>();
 
+  @Input() isRemote: boolean;
+
   onGoing = false;
   editing = false;
   inProgress = true;
@@ -57,6 +73,8 @@ export class RepositoryComponent implements OnInit {
 
   @ViewChild('confirmationDialog')
   confirmationDlg: ConfirmationDialogComponent;
+    @ViewChild("replicationLogViewer")
+    replicationLogViewer: JobLogViewerComponent;
 
   constructor(
     private errorHandler: ErrorHandler,
@@ -64,6 +82,7 @@ export class RepositoryComponent implements OnInit {
     private systemInfoService: SystemInfoService,
     private tagService: TagService,
     private translate: TranslateService,
+    private replicationService: ReplicationService,
   ) {  }
 
   public get registryUrl(): string {
@@ -92,7 +111,12 @@ export class RepositoryComponent implements OnInit {
   }
 
   retrieve(state?: State) {
-    toPromise<Repository>(this.repositoryService.getRepositories(this.projectId, this.repoName))
+      let queryParams;
+      if (this.isRemote) {
+          queryParams = new RequestQueryParams();
+          queryParams.set("isRemote", "true");
+      }
+    toPromise<Repository>(this.repositoryService.getRepositories(this.projectId, this.repoName, queryParams))
       .then( response => {
         if (response.metadata.xTotalCount > 0) {
           this.orgImageInfo = response.data[0].description;
@@ -202,4 +226,88 @@ export class RepositoryComponent implements OnInit {
         this.reset();
     }
   }
+    currentPage: number = 1;
+    currentState: State;
+    jobs: ReplicationJobItem[];
+    jobsLoading: boolean = false;
+    totalCount: number = 0;
+    timerDelay: Subscription;
+    pageSize: number = DEFAULT_PAGE_SIZE;
+    public get showPaginationIndex(): boolean {
+        return this.totalCount > 0;
+    }
+    loadFirstPage(tabID: string): void {
+        this.currentTabID = tabID;
+        console.log(2);
+        let st: State = this.currentState;
+        if (!st) {
+            st = {
+                page: {}
+            };
+        }
+        st.page.size = this.pageSize;
+        st.page.from = 0;
+        st.page.to = this.pageSize - 1;
+
+        this.clrLoadJobs(st);
+    }
+    clrLoadJobs(state: State): void {
+        if (!state || !state.page) {
+            return;
+        }
+        this.currentState = state;
+
+        let pageNumber: number = calculatePage(state);
+        if (pageNumber <= 0) {
+            pageNumber = 1;
+        }
+
+        let params: RequestQueryParams = new RequestQueryParams();
+        // Pagination
+        params.set("page", "" + pageNumber);
+        params.set("page_size", "" + this.pageSize);
+        params.set("repository", this.repoName);
+        this.jobsLoading = true;
+
+        this.jobsLoading = false;
+        console.log(1);
+        toPromise<ReplicationJob>(
+            this.replicationService.getJobs(-1, params)
+        )
+            .then(response => {
+                this.totalCount = response.metadata.xTotalCount;
+                this.jobs = response.data;
+
+                if (!this.timerDelay) {
+                    this.timerDelay = Observable.timer(10000, 10000).subscribe(() => {
+                        let count: number = 0;
+                        this.jobs.forEach(job => {
+                            if (
+                                job.status === "pending" ||
+                                job.status === "running" ||
+                                job.status === "retrying"
+                            ) {
+                                count++;
+                            }
+                        });
+                        if (count > 0) {
+                            this.clrLoadJobs(this.currentState);
+                        } else {
+                            this.timerDelay.unsubscribe();
+                            this.timerDelay = null;
+                        }
+                    });
+                }
+                this.jobsLoading = false;
+            })
+            .catch(error => {
+                this.jobsLoading = false;
+                this.errorHandler.error(error);
+            });
+    }
+    viewLog(jobId: number | string): void {
+        if (this.replicationLogViewer) {
+            this.replicationLogViewer.open(jobId);
+        }
+    }
 }

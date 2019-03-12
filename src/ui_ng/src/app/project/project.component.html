@@ -3,7 +3,7 @@
         <div class="row flex-items-xs-between flex-items-xs-top" style="padding-left: 15px; padding-right: 15px;">
             <h2 class="header-title">{{'PROJECT.PROJECTS' | translate}}</h2>
             <div>
-                <statistics-panel></statistics-panel>
+                <statistics-panel [isRemote]="isRemote"></statistics-panel>
             </div>
         </div>
         <div class="row flex-items-xs-between rightPos">
@@ -22,6 +22,6 @@
             </div>
         </div>
         <create-project (create)="createProject($event)"></create-project>
-        <list-project (addProject)="openModal()"></list-project>
+        <list-project (addProject)="openModal()" [isRemote]="isRemote"></list-project>
     </div>
 </div>

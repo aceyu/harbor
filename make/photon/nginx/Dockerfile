@@ -1,6 +1,6 @@
 FROM photon:1.0
 
-RUN tdnf distro-sync -y \
+RUN export https_proxy=http://192.168.65.2:8118 && tdnf distro-sync -y \
     && tdnf install -y nginx >> /dev/null\
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log \

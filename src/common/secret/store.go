@@ -21,6 +21,8 @@ const (
 	JobserviceUser = "harbor-jobservice"
 	// UIUser is the name of ui user
 	UIUser = "harbor-ui"
+
+	RemotePullUser = "harbor-remote-pull"
 )
 
 // Store the secrets and provides methods to validate secrets

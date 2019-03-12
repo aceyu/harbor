@@ -13,6 +13,10 @@
                 <clr-icon shape="organization" clrVerticalNavIcon></clr-icon>
                 {{'SIDE_NAV.PROJECTS' | translate}}
             </a>
+            <a *ngIf='isRemote' clrVerticalNavLink routerLinkActive="active" routerLink="/harbor/remote/projects">
+                <clr-icon shape="organization" clrVerticalNavIcon></clr-icon>
+                远程项目
+            </a>
             <a clrVerticalNavLink routerLinkActive="active" routerLink="/harbor/logs">
                 <clr-icon shape="list" clrVerticalNavIcon></clr-icon>
                 {{'SIDE_NAV.LOGS' | translate}}

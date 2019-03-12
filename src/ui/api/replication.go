@@ -17,6 +17,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/vmware/harbor/src/common/dao"
 	"github.com/vmware/harbor/src/common/models"
@@ -40,7 +41,9 @@ func (r *ReplicationAPI) Prepare() {
 		r.HandleUnauthorized()
 		return
 	}
-
+	if r.Ctx.Request.URL.Path == "/api/replications/pull/sigle" {
+		return
+	}
 	if !r.SecurityCtx.IsSysAdmin() && !r.SecurityCtx.IsSolutionUser() {
 		r.HandleForbidden(r.SecurityCtx.GetUsername())
 		return
@@ -89,4 +92,33 @@ func startReplication(policyID int64) error {
 		notification.StartReplicationNotification{
 			PolicyID: policyID,
 		})
+}
+
+func (r *ReplicationAPI) PostSinglePull() {
+	replication := &api_models.PullSingleReplication{}
+	r.DecodeJSONReqAndValidate(replication)
+
+	metadata := make(map[string]interface{})
+	metadata["pull"] = true
+	metadata["url"] = os.Getenv("SINGLE_PULL_REPLICATION_URL")
+	insecure := os.Getenv("SINGLE_PULL_REPLICATION_INSECURE")
+	if insecure == "true" {
+		metadata["insecure"] = true
+	} else {
+		metadata["insecure"] = false
+	}
+	username := r.BaseController.SecurityCtx.GetUsername()
+
+	metadata["pull_username"] = username
+	metadata["repository"] = replication.Repository
+	err := notifier.Publish(topic.StartReplicationTopic,
+		notification.StartReplicationNotification{
+			PolicyID: -1,
+			Metadata: metadata,
+		})
+	if err != nil {
+		r.HandleInternalServerError(fmt.Sprintf("failed to publish replication topic for sigle pull %s: %v", replication.Repository, err))
+		return
+	}
+	log.Infof("replication signal for sigle pull %s sent", replication.Repository)
 }

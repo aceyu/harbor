@@ -159,7 +159,7 @@ func validateCfg(c map[string]interface{}) (bool, error) {
 	}
 
 	if value, ok := strMap[common.AUTHMode]; ok {
-		if value != common.DBAuth && value != common.LDAPAuth && value != common.UAAAuth {
+		if value != common.DBAuth && value != common.LDAPAuth && value != common.UAAAuth && value != "rancher_auth" {
 			return false, fmt.Errorf("invalid %s, shoud be one of %s, %s, %s", common.AUTHMode, common.DBAuth, common.LDAPAuth, common.UAAAuth)
 		}
 		flag, err := authModeCanBeModified()

@@ -54,6 +54,8 @@ export class RepositoryGridviewComponent implements OnChanges, OnInit {
     @Output() repoProvisionEvent = new EventEmitter<RepositoryItem>();
     @Output() addInfoEvent = new EventEmitter<RepositoryItem>();
 
+    @Input() isRemote: boolean;
+
     lastFilteredRepoName: string;
     repositories: RepositoryItem[] = [];
     repositoriesCopy: RepositoryItem[] = [];
@@ -343,6 +345,9 @@ export class RepositoryGridviewComponent implements OnChanges, OnInit {
         params.set("page", "" + this.currentPage);
         params.set("page_size", "" + this.pageSize);
 
+        if (this.isRemote) {
+            params.set("isRemote", "true");
+        }
         this.loading = true;
         toPromise<Repository>(
             this.repositoryService.getRepositories(
@@ -390,6 +395,9 @@ export class RepositoryGridviewComponent implements OnChanges, OnInit {
         params.set("page", "" + pageNumber);
         params.set("page_size", "" + this.pageSize);
 
+        if (this.isRemote) {
+            params.set("isRemote", "true");
+        }
         this.loading = true;
 
         toPromise<Repository>(

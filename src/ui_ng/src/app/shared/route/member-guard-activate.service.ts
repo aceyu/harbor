@@ -45,7 +45,13 @@ export class MemberGuard implements CanActivate, CanActivateChild {
   }
 
   checkMemberStatus(url: string, projectId: number): Promise<boolean> {
-    return new Promise<boolean>((resolve, reject) => {
+      let isRemote = false;
+      if (url.startsWith("/harbor/remote/projects/")) {
+          return new Promise<boolean>((resolve, reject) => {
+              return resolve(true);
+          });
+      }
+      return new Promise<boolean>((resolve, reject) => {
       this.projectService.checkProjectMember(projectId)
           .subscribe(
           res => {
@@ -57,7 +63,7 @@ export class MemberGuard implements CanActivate, CanActivateChild {
             if (url.endsWith('repository')) {
               return resolve(true);
             }
-            this.projectService.getProject(projectId)
+            this.projectService.getProject(projectId, isRemote)
                 .subscribe(project => {
                   if (project.public === 1) {
                     return resolve(true);

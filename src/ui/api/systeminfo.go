@@ -101,6 +101,7 @@ type GeneralInfo struct {
 	RegistryStorageProviderName string                           `json:"registry_storage_provider_name"`
 	ReadOnly                    bool                             `json:"read_only"`
 	WithChartMuseum             bool                             `json:"with_chartmuseum"`
+	ForRemotePull               bool                             `json:"for_remote_pull"`
 }
 
 // validate for validating user if an admin.
@@ -189,6 +190,9 @@ func (sia *SystemInfoAPI) GetGeneralInfo() {
 			t = 0
 		}
 		info.NextScanAll = t
+	}
+	if os.Getenv("SINGLE_PULL_REPLICATION_URL") != "" {
+		info.ForRemotePull = true
 	}
 	sia.Data["json"] = info
 	sia.ServeJSON()

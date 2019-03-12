@@ -108,12 +108,24 @@ func (t *Transfer) init(ctx env.JobContext, params map[string]interface{}) error
 	// init source registry client
 	srcURL := params["src_registry_url"].(string)
 	srcInsecure := params["src_registry_insecure"].(bool)
-	srcCred := httpauth.NewSecretAuthorizer(secret())
+	//srcCred := httpauth.NewSecretAuthorizer(secret())
 	srcTokenServiceURL := ""
 	if stsu, ok := params["src_token_service_url"]; ok {
 		srcTokenServiceURL = stsu.(string)
 	}
-
+	var srcCred modifier.Modifier
+	if srcuser, ok := params["src_registry_username"].(string); ok {
+		if srcpwd, ok := params["src_registry_password"].(string); ok {
+			srcCred = auth.NewBasicAuthCredential(srcuser, srcpwd)
+		}
+	}
+	if srcCred == nil {
+		if pullUsername, ok := params["pull_username"].(string); ok {
+			srcCred = httpauth.NewSecretAuthorizer(secret4Pull() + "@" + pullUsername)
+		} else {
+			srcCred = httpauth.NewSecretAuthorizer(secret())
+		}
+	}
 	if len(srcTokenServiceURL) > 0 {
 		t.srcRegistry, err = initRegistry(srcURL, srcInsecure, srcCred, t.repository.name, srcTokenServiceURL)
 	} else {
@@ -127,9 +139,22 @@ func (t *Transfer) init(ctx env.JobContext, params map[string]interface{}) error
 	// init destination registry client
 	dstURL := params["dst_registry_url"].(string)
 	dstInsecure := params["dst_registry_insecure"].(bool)
-	dstCred := auth.NewBasicAuthCredential(
-		params["dst_registry_username"].(string),
-		params["dst_registry_password"].(string))
+	//dstCred := auth.NewBasicAuthCredential(
+	//	params["dst_registry_username"].(string),
+	//	params["dst_registry_password"].(string))
+	var dstCred modifier.Modifier
+	if dstuser, ok := params["dst_registry_username"].(string); ok {
+		if dstpwd, ok := params["dst_registry_password"].(string); ok {
+			dstCred = auth.NewBasicAuthCredential(dstuser, dstpwd)
+		}
+	}
+	if dstCred == nil {
+		if pullUsername, ok := params["pull_username"].(string); ok {
+			dstCred = httpauth.NewSecretAuthorizer(secret() + "@" + pullUsername)
+		} else {
+			dstCred = httpauth.NewSecretAuthorizer(secret())
+		}
+	}
 	t.dstRegistry, err = initRegistry(dstURL, dstInsecure, dstCred, t.repository.name)
 	if err != nil {
 		t.logger.Errorf("failed to create client for destination registry: %v", err)
@@ -345,4 +370,8 @@ func retry(err error) bool {
 
 func secret() string {
 	return os.Getenv("JOBSERVICE_SECRET")
+}
+
+func secret4Pull() string {
+	return os.Getenv("SECRET_FOR_REMOTE_PULL")
 }

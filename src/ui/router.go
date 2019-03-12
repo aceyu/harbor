@@ -104,6 +104,8 @@ func initRouters() {
 	beego.Router("/api/configurations/reset", &api.ConfigAPI{}, "post:Reset")
 	beego.Router("/api/statistics", &api.StatisticAPI{})
 	beego.Router("/api/replications", &api.ReplicationAPI{})
+	beego.Router("/api/replications/pull/sigle", &api.ReplicationAPI{}, "post:PostSinglePull")
+
 	beego.Router("/api/labels", &api.LabelAPI{}, "post:Post;get:List")
 	beego.Router("/api/labels/:id([0-9]+)", &api.LabelAPI{}, "get:Get;put:Put;delete:Delete")
 	beego.Router("/api/labels/:id([0-9]+)/resources", &api.LabelAPI{}, "get:ListResources")

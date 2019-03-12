@@ -351,7 +351,7 @@ export class ReplicationDefaultService extends ReplicationService {
     ruleId: number | string,
     queryParams?: RequestQueryParams
   ): Observable<ReplicationJob> | Promise<ReplicationJob> | ReplicationJob {
-    if (!ruleId || ruleId <= 0) {
+    if (!ruleId || (ruleId <= 0 && ruleId !== -1)) {
       return Promise.reject("Bad argument");
     }
 

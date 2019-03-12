@@ -2,7 +2,7 @@ FROM photon:1.0
 
 ENV PGDATA /var/lib/postgresql/data
 
-RUN touch /etc/localtime.bak \
+RUN export https_proxy=http://192.168.65.2:8118 && touch /etc/localtime.bak \
     && tdnf distro-sync -y \
     && tdnf install -y sed shadow gzip postgresql >> /dev/null\
     && groupadd -r postgres --gid=999 \

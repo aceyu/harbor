@@ -123,4 +123,9 @@ export class HarborShellComponent implements OnInit, OnDestroy {
                 break;
         }
     }
+
+    public get isRemote(): boolean {
+        let appConfig = this.appConfigService.getConfig();
+        return appConfig.for_remote_pull;
+    }
 }

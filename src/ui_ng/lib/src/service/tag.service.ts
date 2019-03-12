@@ -91,6 +91,11 @@ export abstract class TagService {
     tagName: string,
     labelId: number
   ): Observable<any> | Promise<any> | any;
+
+  abstract pullRemote(
+      repositoryName: string,
+      tag: string
+  ): Observable<any> | Promise<any> | any;
 }
 
 /**
@@ -225,5 +230,21 @@ export class TagDefaultService extends TagService {
       .toPromise()
       .then(response => response.status)
       .catch(error => Promise.reject(error));
+  }
+
+  public pullRemote(
+      repositoryName: string,
+      tag: string
+  ): Observable<any> | Promise<Tag> | any {
+    if (!repositoryName || !tag) {
+      return Promise.reject("Bad argument");
+    }
+
+    let url: string = `/api/replications/pull/sigle`;
+    return this.http
+        .post(url, {"repository": repositoryName + ":" + tag}, HTTP_JSON_OPTIONS)
+        .toPromise()
+        .then(response => response)
+        .catch(error => Promise.reject(error));
   }
 }

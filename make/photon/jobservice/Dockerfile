@@ -1,6 +1,6 @@
 FROM photon:1.0
 
-RUN mkdir /harbor/ \
+RUN export https_proxy=http://192.168.65.2:8118 && mkdir /harbor/ \
     && tdnf distro-sync -y \
     && tdnf install sudo -y >> /dev/null\
     && tdnf clean all \

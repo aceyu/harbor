@@ -17,9 +17,6 @@ package filter
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"regexp"
-
 	beegoctx "github.com/astaxie/beego/context"
 	"github.com/docker/distribution/reference"
 	"github.com/vmware/harbor/src/common/models"
@@ -34,6 +31,9 @@ import (
 	"github.com/vmware/harbor/src/ui/config"
 	"github.com/vmware/harbor/src/ui/promgr"
 	"github.com/vmware/harbor/src/ui/promgr/pmsdriver/admiral"
+	"net/http"
+	"regexp"
+	"strings"
 )
 
 //ContextValueKey for content value
@@ -140,9 +140,41 @@ func (s *secretReqCtxModifier) Modify(ctx *beegoctx.Context) bool {
 	pm := config.GlobalProjectMgr
 
 	log.Debug("creating a secret security context...")
-	securCtx := secret.NewSecurityContext(scrt, s.store)
+	if i := strings.Index(scrt, "@"); i != -1 {
+		log.Debug("secret security is ", scrt)
+		if s.store.IsValid(scrt[0:i]) {
+			if s.store.GetUsername(scrt[0:i]) == secstore.RemotePullUser {
+				user := &models.User{
+					Username: scrt[i+1:],
+				}
+				err := auth.PostAuthenticate(user)
+				if err != nil {
+					return false
+				}
+				user.HasAdminRole = false
+				user.Role = 99
+				securCtx := local.NewSecurityContext(user, pm)
+				setSecurCtxAndPM(ctx.Request, securCtx, pm)
+				return true
+			} else if s.store.GetUsername(scrt[0:i]) == secstore.JobserviceUser {
+				user := &models.User{
+					Username: scrt[i+1:],
+				}
+				err := auth.PostAuthenticate(user)
+				if err != nil {
+					return false
+				}
+				securCtx := local.NewSecurityContext(user, pm)
+				setSecurCtxAndPM(ctx.Request, securCtx, pm)
+				return true
+			}
+		}
+		return false
+	} else {
+		securCtx := secret.NewSecurityContext(scrt, s.store)
 
-	setSecurCtxAndPM(ctx.Request, securCtx, pm)
+		setSecurCtxAndPM(ctx.Request, securCtx, pm)
+	}
 
 	return true
 }

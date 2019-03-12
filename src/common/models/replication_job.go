@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	RepOpPullTransfer string = "pullTransfer"
 	//RepOpTransfer represents the operation of a job to transfer repository to a remote registry/harbor instance.
 	RepOpTransfer string = "transfer"
 	//RepOpDelete represents the operation of a job to remove repository from a remote registry/harbor instance.

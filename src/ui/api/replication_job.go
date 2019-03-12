@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/vmware/harbor/src/common/dao"
@@ -64,7 +65,7 @@ func (ra *RepJobAPI) Prepare() {
 func (ra *RepJobAPI) List() {
 
 	policyID, err := ra.GetInt64("policy_id")
-	if err != nil || policyID <= 0 {
+	if err != nil || (policyID <= 0 && policyID != -1) {
 		ra.HandleBadRequest(fmt.Sprintf("invalid policy_id: %s", ra.GetString("policy_id")))
 		return
 	}
@@ -75,16 +76,16 @@ func (ra *RepJobAPI) List() {
 		ra.CustomAbort(http.StatusInternalServerError, "")
 	}
 
-	if policy.ID == 0 {
+	if policy.ID == 0 && policyID != -1 {
 		ra.HandleNotFound(fmt.Sprintf("policy %d not found", policyID))
 		return
 	}
-
-	if !ra.SecurityCtx.HasAllPerm(policy.ProjectIDs[0]) {
-		ra.HandleForbidden(ra.SecurityCtx.GetUsername())
-		return
+	if policyID != -1 {
+		if !ra.SecurityCtx.HasAllPerm(policy.ProjectIDs[0]) {
+			ra.HandleForbidden(ra.SecurityCtx.GetUsername())
+			return
+		}
 	}
-
 	query := &models.RepJobQuery{
 		PolicyID: policyID,
 		// hide the schedule job, the schedule job is used to trigger replication
@@ -94,7 +95,10 @@ func (ra *RepJobAPI) List() {
 
 	query.Repository = ra.GetString("repository")
 	query.Statuses = ra.GetStrings("status")
-
+	if policyID == -1 {
+		query.Operations = []string{}
+		//projects, err := ra.SecurityCtx.GetMyProjects()
+	}
 	startTimeStr := ra.GetString("start_time")
 	if len(startTimeStr) != 0 {
 		i, err := strconv.ParseInt(startTimeStr, 10, 64)
@@ -130,6 +134,12 @@ func (ra *RepJobAPI) List() {
 		return
 	}
 
+	if policyID == -1 {
+		for _, job := range jobs {
+			tags := strings.Join(job.TagList, ",")
+			job.Repository = fmt.Sprintf("%s:%s", job.Repository, tags)
+		}
+	}
 	ra.SetPaginationHeader(total, query.Page, query.Size)
 
 	ra.Data["json"] = jobs
@@ -171,7 +181,6 @@ func (ra *RepJobAPI) GetLog() {
 		ra.HandleBadRequest("ID is nil")
 		return
 	}
-
 	job, err := dao.GetRepJob(ra.jobID)
 	if err != nil {
 		ra.HandleInternalServerError(fmt.Sprintf("failed to get replication job %d: %v", ra.jobID, err))
@@ -188,10 +197,13 @@ func (ra *RepJobAPI) GetLog() {
 		ra.HandleInternalServerError(fmt.Sprintf("failed to get policy %d: %v", job.PolicyID, err))
 		return
 	}
+	if job.PolicyID == -1 {
 
-	if !ra.SecurityCtx.HasAllPerm(policy.ProjectIDs[0]) {
-		ra.HandleForbidden(ra.SecurityCtx.GetUsername())
-		return
+	} else {
+		if !ra.SecurityCtx.HasAllPerm(policy.ProjectIDs[0]) {
+			ra.HandleForbidden(ra.SecurityCtx.GetUsername())
+			return
+		}
 	}
 
 	logBytes, err := utils.GetJobServiceClient().GetJobLog(job.UUID)

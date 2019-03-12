@@ -28,6 +28,9 @@ export class RepositoryPageComponent implements OnInit {
   hasSignedIn: boolean;
   projectName: string;
   mode = 'standalone';
+  isRemote: boolean = false;
+
+  pattern = /\/harbor\/remote\/projects\/\d+\/repositories/;
 
   constructor(
     private route: ActivatedRoute,
@@ -45,10 +48,20 @@ export class RepositoryPageComponent implements OnInit {
       this.projectName = pro.name;
     }
     this.hasSignedIn = this.session.getCurrentUser() !== null;
+    if (this.pattern.test(window.location.pathname)) {
+      this.isRemote = true;
+    } else {
+      this.isRemote = false;
+    }
   }
 
   watchRepoClickEvent(repoEvt: RepositoryItem): void {
-    let linkUrl = ['harbor', 'projects', repoEvt.project_id, 'repositories', repoEvt.name];
-    this.router.navigate(linkUrl);
+    if (!this.isRemote) {
+      let linkUrl = ['harbor', 'projects', repoEvt.project_id, 'repositories', repoEvt.name];
+      this.router.navigate(linkUrl);
+    }else {
+      let linkUrl = ['harbor', 'remote', 'projects', repoEvt.project_id, 'repositories', repoEvt.name];
+      this.router.navigate(linkUrl);
+    }
   }
 }

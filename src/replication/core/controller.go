@@ -87,6 +87,10 @@ func NewDefaultController(cfg ControllerConfig) *DefaultController {
 // Init creates the GlobalController and inits it
 func Init() error {
 	GlobalController = NewDefaultController(ControllerConfig{}) //Use default data
+	PullRepController = NewPullController(ControllerConfig{})
+	if err := PullRepController.Init(); err != nil {
+		return err
+	}
 	return GlobalController.Init()
 }
 

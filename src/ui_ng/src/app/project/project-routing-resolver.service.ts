@@ -31,13 +31,20 @@ export class ProjectRoutingResolver implements Resolve<Project> {
     private router: Router) { }
 
   resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<Project> {
+    let urlSeg = route.url
+    let isRemote = false
+    if (urlSeg && urlSeg.length > 0) {
+      if (urlSeg.values().next().value.path === "remote") {
+        isRemote = true;
+      }
+    }
     // Support both parameters and query parameters
     let projectId = route.params['id'];
     if (!projectId) {
       projectId = route.queryParams['project_id'];
     }
     return this.projectService
-      .getProject(projectId)
+      .getProject(projectId, isRemote)
       .toPromise()
       .then((project: Project) => {
         if (project) {
@@ -55,10 +62,18 @@ export class ProjectRoutingResolver implements Resolve<Project> {
           }
           return project;
         } else {
+          if (isRemote) {
+            this.router.navigate(['/harbor', 'remote', 'projects']);
+            return null;
+          }
           this.router.navigate(['/harbor', 'projects']);
           return null;
         }
       }).catch(error => {
+          if (isRemote) {
+            this.router.navigate(['/harbor', 'remote', 'projects']);
+            return null;
+          }
         this.router.navigate(['/harbor', 'projects']);
         return null;
       });

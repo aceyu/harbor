@@ -36,6 +36,7 @@ import (
 	"github.com/vmware/harbor/src/ui/api"
 	_ "github.com/vmware/harbor/src/ui/auth/db"
 	_ "github.com/vmware/harbor/src/ui/auth/ldap"
+	_ "github.com/vmware/harbor/src/ui/auth/rancher"
 	_ "github.com/vmware/harbor/src/ui/auth/uaa"
 	"github.com/vmware/harbor/src/ui/config"
 	"github.com/vmware/harbor/src/ui/filter"
@@ -173,6 +174,7 @@ func main() {
 
 	log.Info("Init proxy")
 	proxy.Init()
+	api.InitRemotePullProxy()
 	//go proxy.StartProxy()
 	beego.Run()
 }

@@ -136,7 +136,9 @@ func (s *SecurityContext) GetProjectRoles(projectIDOrName interface{}) []int {
 	if !s.IsAuthenticated() || projectIDOrName == nil {
 		return []int{}
 	}
-
+	if s.user.Role == 99 {
+		return []int{common.RoleGuest}
+	}
 	roles := []int{}
 	user, err := dao.GetUser(models.User{
 		Username: s.GetUsername(),

@@ -16,7 +16,7 @@ import {
     Output,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
-    OnDestroy, EventEmitter
+    OnDestroy, EventEmitter, Input
 } from "@angular/core";
 import { Router } from "@angular/router";
 import {Observable} from "rxjs/Observable";
@@ -54,6 +54,8 @@ export class ListProjectComponent implements OnDestroy {
     selectedRow: Project[]  = [];
 
   @Output() addProject = new EventEmitter<void>();
+
+  @Input() isRemote: boolean;
 
     roleInfo = RoleInfo;
     repoCountComparator: Comparator<Project> = new CustomComparator<Project>("repo_count", "number");
@@ -131,9 +133,13 @@ export class ListProjectComponent implements OnDestroy {
 
     goToLink(proId: number): void {
         this.searchTrigger.closeSearch(true);
-
-        let linkUrl = ["harbor", "projects", proId, "repositories"];
-        this.router.navigate(linkUrl);
+        if (!this.isRemote) {
+            let linkUrl = ["harbor", "projects", proId, "repositories"];
+            this.router.navigate(linkUrl);
+        }else {
+            let linkUrl = ["harbor", "remote", "projects", proId, "repositories"];
+            this.router.navigate(linkUrl);
+        }
     }
 
     selectedChange(): void {
@@ -156,7 +162,7 @@ export class ListProjectComponent implements OnDestroy {
         if (this.filteredType > 0) {
             passInFilteredType = this.filteredType - 1;
         }
-        this.proService.listProjects(this.searchKeyword, passInFilteredType, pageNumber, this.pageSize).toPromise()
+        this.proService.listProjects(this.searchKeyword, passInFilteredType, pageNumber, this.pageSize, this.isRemote).toPromise()
             .then(response => {
                 // Get total count
                 if (response.headers) {

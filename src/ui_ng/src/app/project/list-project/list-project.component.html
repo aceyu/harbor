@@ -1,11 +1,12 @@
 <clr-datagrid (clrDgRefresh)="clrLoad($event)" [clrDgLoading]="loading" [(clrDgSelected)]="selectedRow" (clrDgSelectedChange)="selectedChange()">
-    <clr-dg-action-bar>
+    <clr-dg-action-bar *ngIf="!isRemote">
         <button type="button" class="btn btn-sm btn-secondary" (click)="addNewProject()" *ngIf="projectCreationRestriction">
             <clr-icon shape="plus" size="16"></clr-icon>&nbsp;{{'PROJECT.NEW_PROJECT' | translate}}</button>
         <button type="button" class="btn btn-sm btn-secondary" [disabled]="!(selectedRow.length && (isSystemAdmin || canDelete))"
             (click)="deleteProjects(selectedRow)">
             <clr-icon shape="times" size="16"></clr-icon>&nbsp;{{'PROJECT.DELETE' | translate}}</button>
     </clr-dg-action-bar>
+    <clr-dg-action-bar *ngIf="isRemote"><br/></clr-dg-action-bar>
     <clr-dg-column [clrDgField]="'name'">{{'PROJECT.NAME' | translate}}</clr-dg-column>
     <clr-dg-column [clrDgSortBy]="accessLevelComparator">{{'PROJECT.ACCESS_LEVEL' | translate}}</clr-dg-column>
     <clr-dg-column *ngIf="showRoleInfo" [clrDgSortBy]="roleComparator">{{'PROJECT.ROLE' | translate}}</clr-dg-column>

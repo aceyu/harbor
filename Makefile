@@ -88,11 +88,11 @@ CHARTFLAG=false
 
 # version prepare
 # for docker image tag
-VERSIONTAG=dev
+VERSIONTAG=1.6.1
 # for harbor package name
-PKGVERSIONTAG=dev
+PKGVERSIONTAG=1.6.1
 # for harbor about dialog
-UIVERSIONTAG=dev
+UIVERSIONTAG=1.6.1
 VERSIONFILEPATH=$(CURDIR)
 VERSIONFILENAME=UIVERSION
 
@@ -109,7 +109,7 @@ REDISVERSION=$(VERSIONTAG)
 CHARTMUSEUMVERSION=v0.7.1
 
 #clarity parameters
-CLARITYIMAGE=goharbor/harbor-clarity-ui-builder[:tag]
+CLARITYIMAGE=goharbor/harbor-clarity-ui-builder:1.6.0
 CLARITYSEEDPATH=/harbor_src
 CLARITYUTPATH=${CLARITYSEEDPATH}/ui_ng/lib
 CLARITYBUILDSCRIPT=/entrypoint.sh
@@ -184,14 +184,14 @@ DOCKERFILEPATH_COMMON=$(MAKEPATH)/common
 DOCKERFILE_CLARITY=$(MAKEPATH)/dev/nodeclarity/Dockerfile
 
 # docker image name
-DOCKERIMAGENAME_ADMINSERVER=goharbor/harbor-adminserver
-DOCKERIMAGENAME_UI=goharbor/harbor-ui
-DOCKERIMAGENAME_JOBSERVICE=goharbor/harbor-jobservice
-DOCKERIMAGENAME_LOG=goharbor/harbor-log
-DOCKERIMAGENAME_DB=goharbor/harbor-db
-DOCKERIMAGENAME_CLARITY=goharbor/harbor-clarity-ui-builder
-DOCKERIMAGENAME_CHART_SERVER=goharbor/chartmuseum-photon
-DOCKERIMAGENAME_REGCTL=goharbor/harbor-registryctl
+DOCKERIMAGENAME_ADMINSERVER=fbank/harbor-adminserver
+DOCKERIMAGENAME_UI=fbank/harbor-ui
+DOCKERIMAGENAME_JOBSERVICE=fbank/harbor-jobservice
+DOCKERIMAGENAME_LOG=fbank/harbor-log
+DOCKERIMAGENAME_DB=fbank/harbor-db
+DOCKERIMAGENAME_CLARITY=fbank/harbor-clarity-ui-builder
+DOCKERIMAGENAME_CHART_SERVER=fbank/chartmuseum-photon
+DOCKERIMAGENAME_REGCTL=fbank/harbor-registryctl
 
 # docker-compose files
 DOCKERCOMPOSEFILEPATH=$(MAKEPATH)
@@ -224,8 +224,8 @@ DOCKERSAVE_PARA=$(DOCKERIMAGENAME_ADMINSERVER):$(VERSIONTAG) \
 		$(DOCKERIMAGENAME_LOG):$(VERSIONTAG) \
 		$(DOCKERIMAGENAME_DB):$(VERSIONTAG) \
 		$(DOCKERIMAGENAME_JOBSERVICE):$(VERSIONTAG) \
-		goharbor/redis-photon:$(REDISVERSION) \
-		goharbor/nginx-photon:$(NGINXVERSION) goharbor/registry-photon:$(REGISTRYVERSION)-$(VERSIONTAG)
+		fbank/redis-photon:$(REDISVERSION) \
+		fbank/nginx-photon:$(NGINXVERSION) fbank/registry-photon:$(REGISTRYVERSION)-$(VERSIONTAG)
 
 PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG).tgz \
 		          $(HARBORPKG)/common/templates $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar.gz \
@@ -244,19 +244,19 @@ PACKAGE_ONLINE_PARA=-zcvf harbor-online-installer-$(PKGVERSIONTAG).tgz \
 DOCKERCOMPOSE_LIST=-f $(DOCKERCOMPOSEFILEPATH)/$(DOCKERCOMPOSEFILENAME)
 
 ifeq ($(NOTARYFLAG), true)
-	DOCKERSAVE_PARA+= goharbor/notary-server-photon:$(NOTARYVERSION)-$(VERSIONTAG) goharbor/notary-signer-photon:$(NOTARYVERSION)-$(VERSIONTAG)
+	DOCKERSAVE_PARA+= fbank/notary-server-photon:$(NOTARYVERSION)-$(VERSIONTAG) fbank/notary-signer-photon:$(NOTARYVERSION)-$(VERSIONTAG)
 	PACKAGE_OFFLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSENOTARYFILENAME)
 	PACKAGE_ONLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSENOTARYFILENAME)
 	DOCKERCOMPOSE_LIST+= -f $(DOCKERCOMPOSEFILEPATH)/$(DOCKERCOMPOSENOTARYFILENAME)
 endif
 ifeq ($(CLAIRFLAG), true)
-	DOCKERSAVE_PARA+= goharbor/clair-photon:$(CLAIRVERSION)-$(VERSIONTAG)
+	DOCKERSAVE_PARA+= fbank/clair-photon:$(CLAIRVERSION)-$(VERSIONTAG)
 	PACKAGE_OFFLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSECLAIRFILENAME)
 	PACKAGE_ONLINE_PARA+= $(HARBORPKG)/$(DOCKERCOMPOSECLAIRFILENAME)
 	DOCKERCOMPOSE_LIST+= -f $(DOCKERCOMPOSEFILEPATH)/$(DOCKERCOMPOSECLAIRFILENAME)
 endif
 ifeq ($(MIGRATORFLAG), true)
-	DOCKERSAVE_PARA+= goharbor/harbor-migrator:$(MIGRATORVERSION)
+	DOCKERSAVE_PARA+= fbank/harbor-migrator:$(MIGRATORVERSION)
 endif
 # append chartmuseum parameters if set
 ifeq ($(CHARTFLAG), true)
@@ -357,9 +357,9 @@ package_online: modify_composefile
 	@echo "packing online package ..."
 	@cp -r make $(HARBORPKG)
 	@if [ -n "$(REGISTRYSERVER)" ] ; then \
-		$(SEDCMD) -i 's/image\: goharbor/image\: $(REGISTRYSERVER)\/$(REGISTRYPROJECTNAME)/' \
+		$(SEDCMD) -i 's/image\: fbank/image\: $(REGISTRYSERVER)\/$(REGISTRYPROJECTNAME)/' \
 		$(HARBORPKG)/docker-compose.yml ; \
-		$(SEDCMD) -i 's/image\: goharbor/image\: $(REGISTRYSERVER)\/$(REGISTRYPROJECTNAME)/' \
+		$(SEDCMD) -i 's/image\: fbank/image\: $(REGISTRYSERVER)\/$(REGISTRYPROJECTNAME)/' \
 		$(HARBORPKG)/ha/docker-compose.yml ; \
 	fi
 	@cp LICENSE $(HARBORPKG)/LICENSE

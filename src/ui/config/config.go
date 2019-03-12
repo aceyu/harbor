@@ -118,6 +118,7 @@ func initKeyProvider() {
 func initSecretStore() {
 	m := map[string]string{}
 	m[JobserviceSecret()] = secret.JobserviceUser
+	m[RemotePullSecret()] = secret.RemotePullUser
 	SecretStore = secret.NewStore(m)
 }
 
@@ -426,6 +427,10 @@ func UISecret() string {
 // TODO replace it with method of SecretStore
 func JobserviceSecret() string {
 	return os.Getenv("JOBSERVICE_SECRET")
+}
+
+func RemotePullSecret() string {
+	return os.Getenv("SECRET_FOR_REMOTE_PULL")
 }
 
 // WithNotary returns a bool value to indicate if Harbor's deployed with Notary

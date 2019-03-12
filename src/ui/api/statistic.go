@@ -56,6 +56,10 @@ func (s *StatisticAPI) Prepare() {
 
 // Get total projects and repos of the user
 func (s *StatisticAPI) Get() {
+	if s.GetString("isRemote") == "true" && s.Ctx.Request.Header.Get("IS-REMOTE-PULL") == "" {
+		RemotePullProxy(s.Ctx)
+		return
+	}
 	statistic := map[string]int64{}
 	pubProjs, err := s.ProjectMgr.GetPublic()
 	if err != nil {

@@ -61,7 +61,9 @@ func (p *ProjectAPI) Prepare() {
 			p.HandleBadRequest(text)
 			return
 		}
-
+		if p.GetString("isRemote") == "true" && p.Ctx.Request.Header.Get("IS-REMOTE-PULL") == "" {
+			return
+		}
 		project, err := p.ProjectMgr.Get(id)
 		if err != nil {
 			p.ParseAndHandleError(fmt.Sprintf("failed to get project %d", id), err)
@@ -187,6 +189,10 @@ func (p *ProjectAPI) Head() {
 
 // Get ...
 func (p *ProjectAPI) Get() {
+	if p.GetString("isRemote") == "true" && p.Ctx.Request.Header.Get("IS-REMOTE-PULL") == "" {
+		RemotePullProxy(p.Ctx)
+		return
+	}
 	if !p.project.IsPublic() {
 		if !p.SecurityCtx.IsAuthenticated() {
 			p.HandleUnauthorized()
@@ -318,6 +324,10 @@ func (p *ProjectAPI) deletable(projectID int64) (*deletableResp, error) {
 
 // List ...
 func (p *ProjectAPI) List() {
+	if p.GetString("isRemote") == "true" && p.Ctx.Request.Header.Get("IS-REMOTE-PULL") == "" {
+		RemotePullProxy(p.Ctx)
+		return
+	}
 	// query strings
 	page, size := p.GetPaginationParams()
 	query := &models.ProjectQueryParam{

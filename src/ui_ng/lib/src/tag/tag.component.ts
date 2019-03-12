@@ -87,6 +87,8 @@ export class TagComponent implements OnInit, AfterViewInit {
   @Output() tagClickEvent = new EventEmitter<TagClickEvent>();
   @Output() signatureOutput = new EventEmitter<any>();
 
+  @Input() isRemote: boolean;
+
 
   tags: Tag[];
 
@@ -129,6 +131,8 @@ export class TagComponent implements OnInit, AfterViewInit {
 
   @ViewChild('confirmationDialog')
   confirmationDialog: ConfirmationDialogComponent;
+  @ViewChild('pullRemoteconfirmationDialog')
+  pullRemoteconfirmationDialog: ConfirmationDialogComponent;
 
   @ViewChild("digestTarget") textInput: ElementRef;
   @ViewChild("copyInput") copyInput: CopyInputComponent;
@@ -204,7 +208,7 @@ export class TagComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    if (!this.withAdmiral) {
+    if (!this.withAdmiral && !this.isRemote) {
       this.getAllLabels();
     }
   }
@@ -248,6 +252,9 @@ export class TagComponent implements OnInit, AfterViewInit {
     params.set("page", "" + pageNumber);
     params.set("page_size", "" + this.pageSize);
 
+    if (this.isRemote) {
+      params.set("isRemote", "true");
+    }
     this.loading = true;
 
     toPromise<Tag[]>(this.tagService.getTags(
@@ -517,8 +524,13 @@ export class TagComponent implements OnInit, AfterViewInit {
     let signatures: string[] = [] ;
     this.loading = true;
 
+    let queryParams;
+    if (this.isRemote) {
+      queryParams = new RequestQueryParams();
+      queryParams.set("isRemote", "true");
+    }
     toPromise<Tag[]>(this.tagService
-      .getTags(this.repoName))
+      .getTags(this.repoName, queryParams))
       .then(items => {
         // To keep easy use for vulnerability bar
         items.forEach((t: Tag) => {
@@ -725,5 +737,66 @@ export class TagComponent implements OnInit, AfterViewInit {
   // pull command
   onCpError($event: any): void {
       this.copyInput.setPullCommendShow();
+  }
+
+  pullRemoteRepositories(t: Tag[]) {
+    let nameArr: string[] = [];
+    if (t && t.length) {
+      t.forEach(data => {
+        nameArr.push(this.repoName + ":" + data.name);
+      });
+      let message = new ConfirmationMessage(
+          "远程拉取",
+          "远程拉去",
+          nameArr.join(","),
+          t,
+          ConfirmationTargets.TAG,
+          ConfirmationButtons.YES_NO
+      );
+      this.pullRemoteconfirmationDialog.open(message);
+    }
+  }
+
+  remotePulling(message: ConfirmationAcknowledgement) {
+    if (message &&
+        message.source === ConfirmationTargets.TAG
+        && message.state === ConfirmationState.CONFIRMED) {
+      let tags: Tag[] = message.data;
+      if (tags && tags.length) {
+        let promiseLists: any[] = [];
+        tags.forEach(tag => {
+          promiseLists.push(this.pullRemote(tag));
+        });
+
+        Promise.all(promiseLists).then((item) => {
+          this.selectedRow = [];
+          this.retrieve();
+        });
+      }
+    }
+  }
+
+  pullRemote(tag: Tag) {
+    // init operation info
+    let operMessage = new OperateInfo();
+    operMessage.name = 'REPLICATION.REPLICATE';
+    operMessage.data.id = tag.id;
+    operMessage.state = OperationState.progressing;
+    operMessage.data.name = tag.name;
+    this.operationService.publishInfo(operMessage);
+
+    return toPromise<number>(this.tagService
+        .pullRemote(this.repoName, tag.name))
+        .then(
+            response => {
+              this.translateService.get("BATCH.REPLICATE_SUCCESS")
+                  .subscribe(res =>  {
+                    operateChanges(operMessage, OperationState.success);
+                  });
+            }).catch(error => {
+          this.translateService.get("BATCH.REPLICATE_FAILURE").subscribe(res => {
+            operateChanges(operMessage, OperationState.failure, res);
+          });
+        });
   }
 }
