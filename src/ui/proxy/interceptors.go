@@ -28,7 +28,8 @@ const (
 	catalogURLPattern  = `/v2/_catalog`
 	imageInfoCtxKey    = contextKey("ImageInfo")
 	//TODO: temp solution, remove after vmware/harbor#2242 is resolved.
-	tokenUsername = "harbor-ui"
+	tokenUsername   = "harbor-ui"
+	blobsURLPattern = `^/v2/((?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)+)blobs/sha256:([\w]{64})`
 )
 
 // Record the docker deamon raw response.
@@ -44,6 +45,20 @@ func MatchPullManifest(req *http.Request) (bool, string, string) {
 		return false, "", ""
 	}
 	re := regexp.MustCompile(manifestURLPattern)
+	s := re.FindStringSubmatch(req.URL.Path)
+	if len(s) == 3 {
+		s[1] = strings.TrimSuffix(s[1], "/")
+		return true, s[1], s[2]
+	}
+	return false, "", ""
+}
+
+func MatchBlobsManifest(req *http.Request) (bool, string, string) {
+	//TODO: add user agent check.
+	if req.Method != http.MethodGet {
+		return false, "", ""
+	}
+	re := regexp.MustCompile(blobsURLPattern)
 	s := re.FindStringSubmatch(req.URL.Path)
 	if len(s) == 3 {
 		s[1] = strings.TrimSuffix(s[1], "/")
@@ -120,6 +135,13 @@ func (uh urlHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log.Debugf("in url handler, path: %s", req.URL.Path)
 	flag, repository, reference := MatchPullManifest(req)
 	if flag {
+		if strings.IndexRune(repository, '/') == -1 {
+			newRepo := fmt.Sprintf("library/%s", repository)
+			newURI := strings.Replace(req.RequestURI, repository, newRepo, 1)
+			req.RequestURI = newURI
+			req.URL.Path = newURI
+			repository = newRepo
+		}
 		components := strings.SplitN(repository, "/", 2)
 		if len(components) < 2 {
 			http.Error(rw, marshalError("PROJECT_POLICY_VIOLATION", fmt.Sprintf("Bad repository name: %s", repository)), http.StatusBadRequest)
@@ -149,6 +171,16 @@ func (uh urlHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		log.Debugf("image info of the request: %#v", img)
 		ctx := context.WithValue(req.Context(), imageInfoCtxKey, img)
 		req = req.WithContext(ctx)
+	} else {
+		flag, repository, _ := MatchBlobsManifest(req)
+		if flag && req.Method == http.MethodGet {
+			if strings.IndexRune(repository, '/') == -1 {
+				newRepo := fmt.Sprintf("library/%s", repository)
+				newURI := strings.Replace(req.RequestURI, repository, newRepo, 1)
+				req.RequestURI = newURI
+				req.URL.Path = newURI
+			}
+		}
 	}
 	uh.next.ServeHTTP(rw, req)
 }
@@ -291,6 +323,43 @@ func (vh vulnerableHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 	vh.next.ServeHTTP(rw, req)
+}
+
+type selectingProxyHandler struct {
+	proxy1 http.Handler
+	proxy2 http.Handler
+}
+
+func (sph selectingProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	if sph.proxy2 == nil {
+		sph.proxy1.ServeHTTP(rw, req)
+		return
+	}
+	flag1, repository1, _ := MatchPullManifest(req)
+	flag2, repository2, _ := MatchBlobsManifest(req)
+	if (flag1 || flag2) && req.Method == http.MethodGet {
+		var repository string
+		if repository1 != "" {
+			repository = repository1
+		} else if repository2 != "" {
+			repository = repository2
+		}
+		if repository == "" {
+			sph.proxy1.ServeHTTP(rw, req)
+			return
+		}
+		exist := dao.RepositoryExists(repository)
+		if exist {
+			sph.proxy1.ServeHTTP(rw, req)
+			return
+		} else {
+			sph.proxy2.ServeHTTP(rw, req)
+			return
+		}
+	} else {
+		sph.proxy1.ServeHTTP(rw, req)
+		return
+	}
 }
 
 func matchNotaryDigest(img imageInfo) (bool, error) {

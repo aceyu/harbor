@@ -70,6 +70,9 @@ func GetResourceActions(scopes []string) []*token.ResourceActions {
 			}
 		}
 
+		if strings.IndexRune(name, '/') == -1 {
+			name = fmt.Sprintf("library/%s", name)
+		}
 		res = append(res, &token.ResourceActions{
 			Type:    typee,
 			Name:    name,

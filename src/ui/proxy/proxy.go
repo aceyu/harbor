@@ -1,16 +1,17 @@
 package proxy
 
 import (
-	"github.com/vmware/harbor/src/ui/config"
-
 	"fmt"
+	"github.com/vmware/harbor/src/ui/config"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 )
 
 // Proxy is the instance of the reverse proxy in this package.
 var Proxy *httputil.ReverseProxy
+var Proxy2 *httputil.ReverseProxy
 
 var handlers handlerChain
 
@@ -38,7 +39,16 @@ func Init(urls ...string) error {
 		return err
 	}
 	Proxy = httputil.NewSingleHostReverseProxy(targetURL)
-	handlers = handlerChain{head: readonlyHandler{next: urlHandler{next: listReposHandler{next: contentTrustHandler{next: vulnerableHandler{next: Proxy}}}}}}
+	if targetURL2 := os.Getenv("PROXY_REGISTRY_URL"); targetURL2 != "" {
+		targetURL2, err := url.Parse(targetURL2)
+		if err != nil {
+			return err
+		}
+		Proxy2 = httputil.NewSingleHostReverseProxy(targetURL2)
+	}
+
+	//handlers = handlerChain{head: readonlyHandler{next: urlHandler{next: listReposHandler{next: contentTrustHandler{next: vulnerableHandler{next: Proxy}}}}}}
+	handlers = handlerChain{head: readonlyHandler{next: urlHandler{next: listReposHandler{next: contentTrustHandler{next: vulnerableHandler{next: selectingProxyHandler{Proxy, Proxy2}}}}}}}
 	return nil
 }
 

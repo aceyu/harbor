@@ -110,6 +110,9 @@ func (e endpointParser) parse(s string) (*image, error) {
 
 //build Image accepts a string like library/ubuntu:14.04 and build a image struct
 func parseImg(s string) (*image, error) {
+	if strings.IndexRune(s, '/') == -1 {
+		s = fmt.Sprintf("library/%s", s)
+	}
 	repo := strings.SplitN(s, "/", 2)
 	if len(repo) < 2 {
 		return nil, fmt.Errorf("Unable to parse image from string: %s", s)
@@ -167,7 +170,7 @@ func (rep repositoryFilter) filter(ctx security.Context, pm promgr.ProjectManage
 	}
 	if !exist {
 		log.Debugf("project %s does not exist, set empty permission", project)
-		a.Actions = []string{}
+		a.Actions = []string{"pull"}
 		return nil
 	}
 
