@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"github.com/vmware/harbor/src/common/dao"
-	"github.com/vmware/harbor/src/common/models"
-	"github.com/vmware/harbor/src/common/utils/log"
-	"github.com/vmware/harbor/src/ui/auth"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
+
+	"github.com/vmware/harbor/src/common/dao"
+	"github.com/vmware/harbor/src/common/models"
+	"github.com/vmware/harbor/src/common/utils/log"
+	"github.com/vmware/harbor/src/ui/auth"
 )
 
 type Auth struct {
@@ -39,7 +40,13 @@ func (d *Auth) Authenticate(m models.AuthModel) (*models.User, error) {
 	if d.isToken(m) {
 		return d.authByRancherToken(m.Principal, m.Password)
 	} else {
-		return d.authByBasicAuth(m.Principal, m.Password)
+		normalUrl := rancherLoginURL()
+		localUrl := rancherLocalLoginURL()
+		user, err := d.authByBasicAuth(normalUrl, m.Principal, m.Password)
+		if err != nil && localUrl != "" && normalUrl != localUrl {
+			user, err = d.authByBasicAuth(localUrl, m.Principal, m.Password)
+		}
+		return user, err
 	}
 }
 
@@ -54,7 +61,7 @@ func (d *Auth) isToken(m models.AuthModel) bool {
 	return false
 }
 
-func (d *Auth) authByBasicAuth(username, password string) (*models.User, error) {
+func (d *Auth) authByBasicAuth(url, username, password string) (*models.User, error) {
 	rLogin := &rancherLogin{
 		Username:     username,
 		Password:     password,
@@ -65,7 +72,7 @@ func (d *Auth) authByBasicAuth(username, password string) (*models.User, error) 
 	if err != nil {
 		return nil, err
 	}
-	response, err := httpClient.Post(rancherLoginURL(), "application/json", bytes.NewReader(bytesData))
+	response, err := httpClient.Post(url, "application/json", bytes.NewReader(bytesData))
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +217,10 @@ func rancherUserInfoURL() string {
 
 func rancherLoginURL() string {
 	return os.Getenv("RANCHER_LOGIN_URL")
+}
+
+func rancherLocalLoginURL() string {
+	return os.Getenv("RANCHER_LOCAL_LOGIN_URL")
 }
 
 type rancherLogin struct {
